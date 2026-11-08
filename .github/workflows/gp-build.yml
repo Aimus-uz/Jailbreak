@@ -1,0 +1,39 @@
+# GAMEPOINT: builds Jailbreak in Uzbek and Russian (two artifacts)
+name: GAMEPOINT build (uz + ru)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        lang: [ uz, ru ]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Apply ${{ matrix.lang }} texts
+        run: python3 tools/gp-lang/apply.py ${{ matrix.lang }}
+
+      - name: Build
+        run: |
+          dotnet restore
+          dotnet build src/Jailbreak/Jailbreak.csproj --no-restore
+          dotnet publish src/Jailbreak/Jailbreak.csproj --no-build --no-restore
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Jailbreak-${{ matrix.lang }}
+          path: build/Jailbreak
+          if-no-files-found: error
